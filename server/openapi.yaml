@@ -1,0 +1,164 @@
+openapi: "3.0.0"
+info:
+  title: Bobyard API
+  version: "1.0.0"
+  description: API for comments log
+
+servers:
+  - url: http://localhost:9000
+    description: Comments log
+
+paths:
+  /comments:
+    get:
+      summary: Get all comments
+      tags: [Comments]
+      responses:
+        "200":
+          description: List of all comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+        "500":
+          description: Error fetching comments
+    
+    post:
+      summary: Create a new comment
+      tags: [Create]
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  description: The comment text
+                  example: "This is a new comment"
+                image:
+                  type: string
+                  nullable: true
+                  description: Optional image URL
+                  example: "https://example.com/photo.png"
+
+      responses:
+        "201":
+          description: Comment successfully created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+        "400":
+          description: Invalid input
+
+        "500":
+          description: Error creating comment
+
+  /comments/{id}:
+    put:
+      summary: Update a comment
+      tags: [Update]
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: ID of the comment to update
+          schema:
+            type: integer
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewComment"
+
+      responses:
+        "200":
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+
+        "400":
+          description: Invalid ID supplied
+
+        "404":
+          description: Comment not found
+
+        "500":
+          description: Error updating comment
+
+    delete:
+      summary: Delete a comment
+      tags: [Delete]
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: ID of the comment to delete
+          schema:
+            type: integer
+
+      responses:
+        "204":
+          description: Comment successfully deleted
+
+        "400":
+          description: Invalid ID supplied
+
+        "404":
+          description: Comment not found
+
+        "500":
+          description: Error deleting comment
+
+    
+
+
+
+components:
+  schemas:
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        author:
+          type: string
+          example: "Fiona"
+        text:
+          type: string
+        date:
+          type: string
+          format: date-time
+        likes:
+          type: integer
+        image:
+          type: string
+          nullable: true
+      required:
+        - id
+        - author
+        - text
+      
+    NewComment:
+      type: object
+      properties:
+        text:
+          type: string
+        image:
+          type: string
+          nullable: true
