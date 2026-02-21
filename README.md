@@ -17,6 +17,7 @@ Font Style
 
 Additional notes:
 * Rounded corner for softer look analogous to Bobyard's blogs page
+* Utilized Material UI components for cohensive and clean look
 * Additional references: Youtube and Reddit comment sections
 * Assumption: article above, with this comment component at the bottom of page (hence most recent comment at top)
 
