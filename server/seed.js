@@ -22,6 +22,11 @@ async function seed() {
     );
   }
 
+  // Reset the sequence so next inserts don't conflict
+  await pool.query(`
+    SELECT setval('comments_id_seq', (SELECT COALESCE(MAX(id), 0) FROM comments));
+  `);
+
   console.log("Comments seeded successfully!");
   await pool.end();
 }
