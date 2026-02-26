@@ -36,34 +36,63 @@ const getComments = async (req, res) => {
 
 // post
 const createComment = async (req, res) => {
-    try {
-      const { author, text, image } = req.body;
-  
-      // make sure text is provided
-      if (!text) {
-        return res.status(400).json({ message: "Text is required" });
-      }
-  
-      // sql query with database generated id
-      // takes max of id and increments automatically via pg_get_serial_sequence
-      const result = await pool.query(
-        `INSERT INTO comments (author, text, image, date, likes)
-         VALUES ($1, $2, $3, NOW(), 0)
-         RETURNING *`,
-        [
-          author || "Admin",
-          text,
-          image || null
-        ]
-      );
-  
-      res.status(201).json(result.rows[0]);
-  
-    } catch (error) {
-      console.error("CREATE COMMENT ERROR:", error);
-      res.status(500).json({ message: "Error creating comment" });
+  try {
+    const { author, text, image } = req.body;
+
+    // make sure text is provided
+    if (!text) {
+      return res.status(400).json({ message: "Text is required" });
     }
-  };  
+
+    // sql query with database generated id
+    // takes max of id and increments automatically via pg_get_serial_sequence
+    const result = await pool.query(
+      `INSERT INTO comments (author, text, image, date, likes)
+        VALUES ($1, $2, $3, NOW(), 0)
+        RETURNING *`,
+      [
+        author || "Admin",
+        text,
+        image || null
+      ]
+    );
+
+    res.status(201).json(result.rows[0]);
+
+  } catch (error) {
+    console.error("CREATE COMMENT ERROR:", error);
+    res.status(500).json({ message: "Error creating comment" });
+  }
+};  
+
+const increaseLikes = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // check if id is provided and valid
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ message: "Invalid ID supplied" });
+    }
+
+    const result  = await pool.query(
+      `UPDATE comments
+      SET likes = likes + 1
+      WHERE id = $1
+      RETURNING *;`,
+      [id]
+    );
+
+    // check comment updated successfully (found/not found)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    res.status(201).send();
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ message: "Error increasing likes count" });
+  }
+}
 
 // put
 const updateComment = async (req, res) => {
@@ -100,32 +129,32 @@ const updateComment = async (req, res) => {
   };  
 
 // delete
-  const deleteComment = async (req, res) => {
-    try {
-      const { id } = req.params;
-  
-      // check if id is provided and valid
-      if (!id || isNaN(id)) {
-        return res.status(400).json({ message: "Invalid ID supplied" });
-      }
-  
-      // run delete query
-      const result = await pool.query(
-        "DELETE FROM comments WHERE id = $1 RETURNING *",
-        [id]
-      );
-  
-      // check comment deleted successfully (found/not found)
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: "Comment not found" });
-      }
-  
-      res.status(204).send();
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error deleting comment" });
+const deleteComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // check if id is provided and valid
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ message: "Invalid ID supplied" });
     }
-  };
+
+    // run delete query
+    const result = await pool.query(
+      "DELETE FROM comments WHERE id = $1 RETURNING *",
+      [id]
+    );
+
+    // check comment deleted successfully (found/not found)
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error deleting comment" });
+  }
+};
   
 
 // routes
@@ -133,6 +162,7 @@ app.get("/comments", getComments);
 app.post("/comments", createComment);
 app.put("/comments/:id", updateComment);
 app.delete("/comments/:id", deleteComment);
+app.post("/comments/:id/likes", increaseLikes);
 
 // swagger ui
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));

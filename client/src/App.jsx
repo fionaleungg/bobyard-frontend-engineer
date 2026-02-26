@@ -12,6 +12,10 @@ import {
   Button,
   IconButton,
 } from '@mui/material';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
 
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -19,6 +23,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SendIcon from '@mui/icons-material/Send';
 import ImageIcon from '@mui/icons-material/Image';
 import DoneIcon from '@mui/icons-material/Done';
+import SortIcon from '@mui/icons-material/Sort';
 
 import anonymousImg from './assets/anonymous.png';
 
@@ -31,7 +36,22 @@ const theme = createTheme({
   },
 });
 
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 250,
+    },
+  },
+};
 
+const sorts = [
+  "newest",
+  "oldest",
+  "most liked"
+];
 
 function App() {
   // GET related states
@@ -46,6 +66,12 @@ function App() {
   const [editImage, setEditImage] = React.useState("");  
   // DELETE related states
   const [deletingId, setDeletingId] = React.useState(null);
+  // PUT likes related states
+  const [likesIncrementId, setLikesIncrementId] = React.useState(null);
+
+  // comments filter states (3 valid filters: newest, oldest, most liked)
+  const [sortBy, setSortBy] = React.useState("newest")
+  const [openSort, setOpenSort] = React.useState(false)
 
 
   /*
@@ -68,10 +94,22 @@ function App() {
           return res.json();
       })
       .then((json) => {
-        // sort by date descending (newest first) ([..json] --> copy of json so original data isn't changed)
-        const sorted = [...json].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
+        let sorted = []
+        if (sortBy == "most liked") {
+         sorted = [...json].sort(
+          (a, b) => b.likes - a.likes
+         )
+        } else if (sortBy == "oldest") {
+          // sort by date descending (newest first) ([..json] --> copy of json so original data isn't changed)
+          sorted = [...json].sort(
+            (a, b) => new Date(a.date) - new Date(b.date)
+          );
+        } else {
+          // sort by date descending (newest first) ([..json] --> copy of json so original data isn't changed)
+          sorted = [...json].sort(
+            (a, b) => new Date(b.date) - new Date(a.date)
+          );
+        }
         // set state variable to sorted comments
         setComments(sorted);
       })
@@ -192,6 +230,35 @@ function App() {
       .catch(() => alert(`Error deleting comment ${deletingId}`))
   }
 
+  /*
+    POST ENDPOINT
+    parameters: response body containing text (required) and image link (optional)
+    on success, returns: newly created Comment
+  */
+  const postlikesurl = `http://localhost:9000/comments/${likesIncrementId}/likes`
+  const incrementCommentLikes = () => {
+    // likesIncrementId is required
+    if (!likesIncrementId) return;
+
+    fetch (postlikesurl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+    })
+      .then((res) => {
+        // check response code for error, if error catch it
+        // otherwise convert response into json
+        if (!res.ok) throw res;
+      })    
+      // on request success, state variable reset and display updated comments list
+      .then(() => {
+        setLikesIncrementId(null);
+        getComments();
+      })
+      .catch(() => alert('Error incrementing comment likes'))
+  }
+
   // on render get comments
   React.useEffect(() => {
     setComments([]);
@@ -203,6 +270,21 @@ function App() {
     deleteComment();
   }, [deletingId]);
 
+  // call POST endpoint function when likesIncrementId is changed
+  React.useEffect(() => {
+    console.log(`likesIncrementId: ${likesIncrementId}`)
+    incrementCommentLikes();
+  }, [likesIncrementId]);
+
+  React.useEffect(() => {
+    getComments();
+  }, [sortBy]);
+
+  const handleChange = (event) => {
+    setSortBy(event.target.value);
+  };
+
+  
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex', flexDirection: 'column', margin: 'auto', backgroundColor: '#e4e4e4'}}>
@@ -262,6 +344,35 @@ function App() {
               </IconButton>
             </Box>
           </Box>
+        </Box>
+
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", mr: 10, mt: 5 }}>
+          <IconButton
+            size="medium"
+            aria-label="sort"
+            sx={{ mr: 2 }}
+            onClick={() => setOpenSort((prev) => !prev)}
+          >
+            <SortIcon sx={{ fontSize: 'large', color: 'black' }} />
+          </IconButton>
+
+          {/* conditional rendering of select */}
+          {openSort && (
+            <FormControl sx={{ width: 200 }}>
+              <Select
+                value={sortBy}
+                onChange={handleChange}
+                input={<OutlinedInput />}
+                sx={{ width: "100%" }}
+              >
+                {sorts.map((name) => (
+                  <MenuItem key={name} value={name}>
+                    {name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
         {/* display comments if there is at least 1 comment */}
@@ -368,7 +479,8 @@ function App() {
                   <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: 'black', mr: 2, ml: 1 }}>
                     {comment.likes}
                   </Typography>
-                  <ThumbUpIcon sx={{ color: '#3d3d3e', fontSize: 'large' }}/>
+                  <ThumbUpIcon onClick={() => {setLikesIncrementId(comment.id);}}
+                  sx={{ color: '#3d3d3e', fontSize: 'large' }}/>
                 </Box>
 
                 <Divider sx={{ mt: 1 }} />
