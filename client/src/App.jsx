@@ -20,6 +20,10 @@ import SendIcon from '@mui/icons-material/Send';
 import ImageIcon from '@mui/icons-material/Image';
 import DoneIcon from '@mui/icons-material/Done';
 
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+
 import anonymousImg from './assets/anonymous.png';
 
 // theme for text font
@@ -48,6 +52,16 @@ function App() {
   const [deletingId, setDeletingId] = React.useState(null);
 
 
+  // sorting related states
+  const [sortBy, setSortBy] = React.useState("Newest")
+
+  const names = [
+    "Ascending ID",
+    "Descending ID",
+    "Oldest",
+    "Newest",
+  ];
+
   /*
     GET ENDPOINT
     parameters: none
@@ -69,9 +83,28 @@ function App() {
       })
       .then((json) => {
         // sort by date descending (newest first) ([..json] --> copy of json so original data isn't changed)
-        const sorted = [...json].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        );
+        let sorted = ""
+
+        if (sortBy == "Ascending ID") {
+          sorted = [...json].sort(
+            (a, b) => a.id - b.id
+          );
+        } else if (sortBy == "Descending ID") {
+          sorted = [...json].sort(
+            (a, b) => b.id - a.id
+          );
+        } else if (sortBy == "Oldest") {
+          sorted = [...json].sort(
+            (a, b) => new Date(a.date) - new Date(b.date)
+          );
+        } else if (sortBy == "Newest") {
+          sorted = [...json].sort(
+            (a, b) => new Date(b.date) - new Date(a.date)
+          );
+        } else {
+          throw sorted    
+        }
+
         // set state variable to sorted comments
         setComments(sorted);
       })
@@ -194,6 +227,8 @@ function App() {
 
   // on render get comments
   React.useEffect(() => {
+    setSortBy(localStorage.getItem( 'sortByValue' ) || "Newest");
+    console.log(`get sortBy: ${sortBy}`)
     setComments([]);
     getComments();
   }, []);
@@ -202,6 +237,18 @@ function App() {
   React.useEffect(() => {
     deleteComment();
   }, [deletingId]);
+
+  React.useEffect(() => {
+    // console.log(``)
+    getComments();
+  }, [sortBy]);
+
+  const handleChange = (event) => {
+    setSortBy(event.target.value);
+    localStorage.setItem( 'sortByValue', event.target.value );
+    console.log(`set sortBy: ${sortBy}`)
+    console.log(`sortBy: ${sortBy}`);
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -262,6 +309,36 @@ function App() {
               </IconButton>
             </Box>
           </Box>
+        </Box>
+
+
+        {/* sort by */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mr: 10 }}>
+          <FormControl sx={{ m: 1, width: 300, mt: 3 }}>
+            <Select
+              value={sortBy}
+              onChange={handleChange}
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return <em>Placeholder</em>;
+                }
+
+                return selected;
+              }}
+            >
+              <MenuItem disabled value="">
+                <em>Placeholder</em>
+              </MenuItem>
+              {names.map((name) => (
+                <MenuItem
+                  key={name}
+                  value={name}
+                >
+                  {name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Box>
 
         {/* display comments if there is at least 1 comment */}
