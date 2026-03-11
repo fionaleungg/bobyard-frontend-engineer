@@ -2,14 +2,14 @@
 const pool = require("./db.config");
 const fs = require("fs");
 
-const file = JSON.parse(fs.readFileSync("./comments.json", "utf-8"));
+const file = JSON.parse(fs.readFileSync("./comments_threaded.json", "utf-8"));
 const comments = file.comments;
 
 async function seed() {
   for (const comment of comments) {
     await pool.query(
-      `INSERT INTO comments (id, author, text, date, likes, image)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO comments (id, author, text, date, likes, image, parent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO NOTHING`,
       [
         parseInt(comment.id),
@@ -18,9 +18,15 @@ async function seed() {
         comment.date,
         comment.likes,
         comment.image || null,
+        comment.parent ? parseInt(comment.parent) : null,
       ]
     );
   }
+
+  // Reset the sequence so next inserts don't conflict
+  await pool.query(`
+    SELECT setval('comments_id_seq', (SELECT COALESCE(MAX(id), 0) FROM comments));
+  `);
 
   console.log("Comments seeded successfully!");
   await pool.end();

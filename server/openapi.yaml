@@ -47,6 +47,10 @@ paths:
                   nullable: true
                   description: Optional image URL
                   example: "https://example.com/photo.png"
+                parent:
+                  type: string
+                  nullable: true
+                  description: ID of parent comment (empty string for top-level)
 
       responses:
         "201":
@@ -124,6 +128,34 @@ paths:
         "500":
           description: Error deleting comment
 
+  /comments/{id}/likes:
+    post:
+      summary: Update likes count
+      tags: [Post]
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          description: ID of the comment to increment likes
+          schema:
+            type: integer
+
+      responses:
+        "201":
+          description: Comment likes successfully incremented
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Comment"
+        "400":
+          description: Invalid input
+        "404":
+          description: Comment not found
+        "500":
+          description: Error incrementing comment likes
+
+
     
 
 
@@ -149,6 +181,9 @@ components:
         image:
           type: string
           nullable: true
+        parent:
+          type: string
+          nullable: true
       required:
         - id
         - author
@@ -160,5 +195,8 @@ components:
         text:
           type: string
         image:
+          type: string
+          nullable: true
+        parent:
           type: string
           nullable: true
