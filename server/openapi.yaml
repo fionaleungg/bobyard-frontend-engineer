@@ -47,6 +47,10 @@ paths:
                   nullable: true
                   description: Optional image URL
                   example: "https://example.com/photo.png"
+                parent:
+                  type: string
+                  nullable: true
+                  description: ID of parent comment (empty string for top-level)
 
       responses:
         "201":
@@ -124,7 +128,6 @@ paths:
         "500":
           description: Error deleting comment
 
-
   /comments/{id}/likes:
     post:
       summary: Update likes count
@@ -153,6 +156,9 @@ paths:
           description: Error incrementing comment likes
 
 
+    
+
+
 
 components:
   schemas:
@@ -175,6 +181,9 @@ components:
         image:
           type: string
           nullable: true
+        parent:
+          type: string
+          nullable: true
       required:
         - id
         - author
@@ -186,5 +195,8 @@ components:
         text:
           type: string
         image:
+          type: string
+          nullable: true
+        parent:
           type: string
           nullable: true

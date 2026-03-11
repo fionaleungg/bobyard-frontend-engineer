@@ -26,7 +26,8 @@ app.use(cors());
 // get
 const getComments = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM comments");
+    const result = await pool.query(
+      `SELECT * FROM comments`);
     res.status(200).json(result.rows);
   } catch (error) {
     console.error(error);
@@ -36,63 +37,64 @@ const getComments = async (req, res) => {
 
 // post
 const createComment = async (req, res) => {
-  try {
-    const { author, text, image } = req.body;
-
-    // make sure text is provided
-    if (!text) {
-      return res.status(400).json({ message: "Text is required" });
+    try {
+      const { author, text, parent, image } = req.body;
+  
+      // make sure text is provided
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+  
+      // sql query with database generated id
+      // takes max of id and increments automatically via pg_get_serial_sequence
+      const result = await pool.query(
+        `INSERT INTO comments (author, text, image, parent, date, likes)
+         VALUES ($1, $2, $3, $4, NOW(), 0)
+         RETURNING *`,
+        [
+          author || "Admin",
+          text,
+          image || null,
+          parent ?? ""
+        ]
+      );
+  
+      res.status(201).json(result.rows[0]);
+  
+    } catch (error) {
+      console.error("CREATE COMMENT ERROR:", error);
+      res.status(500).json({ message: "Error creating comment" });
     }
+  };  
 
-    // sql query with database generated id
-    // takes max of id and increments automatically via pg_get_serial_sequence
-    const result = await pool.query(
-      `INSERT INTO comments (author, text, image, date, likes)
-        VALUES ($1, $2, $3, NOW(), 0)
-        RETURNING *`,
-      [
-        author || "Admin",
-        text,
-        image || null
-      ]
-    );
-
-    res.status(201).json(result.rows[0]);
-
-  } catch (error) {
-    console.error("CREATE COMMENT ERROR:", error);
-    res.status(500).json({ message: "Error creating comment" });
+  const increaseLikes = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      // check if id is provided and valid
+      if (!id || isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ID supplied" });
+      }
+  
+      const result  = await pool.query(
+        `UPDATE comments
+        SET likes = likes + 1
+        WHERE id = $1
+        RETURNING *;`,
+        [id]
+      );
+  
+      // check comment updated successfully (found/not found)
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+  
+      res.status(201).send();
+    } catch (error) {
+      console.error(error)
+      res.status(500).json({ message: "Error increasing likes count" });
+    }
   }
-};  
-
-const increaseLikes = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // check if id is provided and valid
-    if (!id || isNaN(id)) {
-      return res.status(400).json({ message: "Invalid ID supplied" });
-    }
-
-    const result  = await pool.query(
-      `UPDATE comments
-      SET likes = likes + 1
-      WHERE id = $1
-      RETURNING *;`,
-      [id]
-    );
-
-    // check comment updated successfully (found/not found)
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Comment not found" });
-    }
-
-    res.status(201).send();
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: "Error increasing likes count" });
-  }
-}
 
 // put
 const updateComment = async (req, res) => {
