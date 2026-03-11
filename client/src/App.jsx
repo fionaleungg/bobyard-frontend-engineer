@@ -25,6 +25,10 @@ import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+
 import anonymousImg from './assets/anonymous.png';
 
 // theme for text font
@@ -69,6 +73,16 @@ function App() {
     "Newest",
   ];
 
+  // sorting related states
+  const [sortBy, setSortBy] = React.useState("Newest")
+
+  const names = [
+    "Ascending ID",
+    "Descending ID",
+    "Oldest",
+    "Newest",
+  ];
+
   /*
     GET ENDPOINT
     parameters: none
@@ -100,19 +114,19 @@ function App() {
         let sorted = ""
 
         if (sortBy == "Ascending ID") {
-          sorted = [...normalized].sort(
+          sorted = [...json].sort(
             (a, b) => a.id - b.id
           );
         } else if (sortBy == "Descending ID") {
-          sorted = [...normalized].sort(
+          sorted = [...json].sort(
             (a, b) => b.id - a.id
           );
         } else if (sortBy == "Oldest") {
-          sorted = [...normalized].sort(
+          sorted = [...json].sort(
             (a, b) => new Date(a.date) - new Date(b.date)
           );
         } else if (sortBy == "Newest") {
-          sorted = [...normalized].sort(
+          sorted = [...json].sort(
             (a, b) => new Date(b.date) - new Date(a.date)
           );
         } else {
@@ -487,6 +501,7 @@ function App() {
   // on render get comments
   React.useEffect(() => {
     setSortBy(localStorage.getItem( 'sortByValue' ) || "Newest");
+    console.log(`get sortBy: ${sortBy}`)
     setComments([]);
     getComments();
   }, []);
@@ -497,17 +512,15 @@ function App() {
   }, [deletingId]);
 
   React.useEffect(() => {
+    // console.log(``)
     getComments();
   }, [sortBy]);
-
-  // call POST endpoint function when likesIncrementId is changed
-  React.useEffect(() => {
-    incrementCommentLikes();
-  }, [likesIncrementId]);
 
   const handleChange = (event) => {
     setSortBy(event.target.value);
     localStorage.setItem( 'sortByValue', event.target.value );
+    console.log(`set sortBy: ${sortBy}`)
+    console.log(`sortBy: ${sortBy}`);
   };
 
   return (
@@ -571,6 +584,84 @@ function App() {
           </Box>
         </Box>
 
+
+        {/* sort by */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", mr: 10 }}>
+          <FormControl sx={{ m: 1, width: 300, mt: 3 }}>
+            <Select
+              value={sortBy}
+              onChange={handleChange}
+              renderValue={(selected) => {
+                if (selected.length === 0) {
+                  return <em>Placeholder</em>;
+                }
+
+                return selected;
+              }}
+            >
+              <MenuItem disabled value="">
+                <em>Placeholder</em>
+              </MenuItem>
+              {names.map((name) => (
+                <MenuItem
+                  key={name}
+                  value={name}
+                >
+                  {name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* display comments if there is at least 1 comment */}
+        {comments.length > 0 ? (
+          <List>
+            {/* map each comment to box element */}
+            {comments.map((comment) => (
+              <Box
+                key={comment.id}
+                sx={{
+                  boxShadow: '0px 4px 6px rgba(0,0,0,0.05)',
+                  p: 2,
+                  borderRadius: 3,
+                  margin: 10,
+                  mt: 2,
+                  mb: 2,
+                  backgroundColor: '#eae9ea',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  {/* top left: author & date/time */}
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    {/* avatar image placeholder */}
+                    <Avatar alt="Anonymous" src={anonymousImg} sx={{ mr: 1 }} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'black' }}>
+                      {comment.author} • {new Date(comment.date).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  {/* top right: edit and delete comment buttons */}
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <EditIcon
+                      onClick={() => {
+                        // if comment already in editing mode, close editing mode
+                        if (editingId === comment.id) {
+                          setEditingId(null);
+                        // else comment not in editing mode, turn it on and place current values in text and image link fields 
+                        } else {
+                          setEditingId(comment.id);
+                          setEditText(comment.text);
+                          setEditImage(comment.image || "");
+                        }
+                      }}
+                      sx={{ mr: 1, padding: 1, borderRadius: 5, color: '#3d3d3e', '&:hover': {backgroundColor: '#bababa'}}}
+                    />
+
+                    <DeleteIcon 
+                      onClick={() => {setDeletingId(comment.id);}}
+                      sx={{ padding: 1, borderRadius: 5, color: '#3d3d3e', '&:hover': {backgroundColor: '#bababa'}}}/>
+                  </Box>
+                </Box>
 
         {/* sort by */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", mr: 10 }}>
